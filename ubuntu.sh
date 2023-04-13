@@ -79,14 +79,14 @@ git clone https://github.com/zsh-users/zsh-autosuggestions.git ~/.oh-my-zsh/cust
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 
 # link files
-# ln -s ~/myfiles/.vimrc ~/.vimrc
+# ln -s ~/dotfiles/.vimrc ~/.vimrc
 mkdir -p ~/.config
 cd ~/.config
-ln -s ~/myfiles/nvim .
+ln -s ~/dotfiles/nvim .
 rm -rf ~/.zshrc
-ln -s ~/myfiles/.zshrc ~/.zshrc
+ln -s ~/dotfiles/.zshrc ~/.zshrc
 rm -rf ~/.ssh
-ln -s ~/myfiles/.ssh ~/.ssh
+ln -s ~/dotfiles/.ssh ~/.ssh
 chmod 600 ~/.ssh/*
 
 # docker without sudo
