@@ -3,3 +3,5 @@ kubectl
 nvim/plugin
 
 .idea
+
+packer_compiled.lua
