@@ -1,19 +1,15 @@
-require("plugins")
-require("core.options")
-require("core.keymaps")
-require("core.colorscheme")
-require("plugins.comment")
-require("plugins.nvim-tree")
-require("plugins.lualine")
-require("plugins.telescope")
-require("plugins.nvim-cmp")
-require("plugins.lsp.mason")
-require("plugins.lsp.lspsaga")
-require("plugins.lsp.lspconfig")
-require("plugins.lsp.null-ls")
-require("plugins.autopairs")
-require("plugins.treesitter")
-require("plugins.gitsigns")
-require("plugins.bufferline")
-require("plugins.toggleterm")
-require("plugins.colorizer")
+require('base')
+require('highlights')
+require('maps')
+require('plugins')
+
+local has = vim.fn.has
+local is_mac = has "macunix"
+local is_wsl = has "wsl"
+
+if is_mac == 1 then
+  require('macos')
+end
+if is_wsl == 1 then
+  require('wsl')
+end
