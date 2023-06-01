@@ -2,7 +2,11 @@ local status, cmp = pcall(require, "cmp")
 if (not status) then return end
 local lspkind = require 'lspkind'
 
-local function formatForTailwindCSS(entry, vim_item)
+local function getVimItem(entry, vim_item)
+  if entry.source.name == "codeium" then
+    vim_item.kind = ""
+    return vim_item
+  end
   if vim_item.kind == 'Color' and entry.completion_item.documentation then
     local _, _, r, g, b = string.find(entry.completion_item.documentation, '^rgb%((%d+), (%d+), (%d+)')
     if r then
@@ -41,12 +45,13 @@ cmp.setup({
   sources = cmp.config.sources({
     { name = 'nvim_lsp' },
     { name = 'buffer' },
+    { name = 'codeium' },
   }),
   formatting = {
     format = lspkind.cmp_format({
       maxwidth = 50,
       before = function(entry, vim_item)
-        vim_item = formatForTailwindCSS(entry, vim_item)
+        vim_item = getVimItem(entry, vim_item)
         return vim_item
       end
     })
