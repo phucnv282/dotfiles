@@ -11,6 +11,7 @@ local fb_actions = require "telescope".extensions.file_browser.actions
 
 telescope.setup {
   defaults = {
+    preview = false,
     file_ignore_patterns = {
       "node_modules",
       ".git",
@@ -26,7 +27,21 @@ telescope.setup {
       },
     },
   },
+  pickers = {
+    find_files = {
+      path_display = { "truncate" }
+    }
+  },
   extensions = {
+    extensions = {
+      fzf = {
+        fuzzy = true,                   -- false will only do exact matching
+        override_generic_sorter = true, -- override the generic sorter
+        override_file_sorter = true,    -- override the file sorter
+        case_mode = "smart_case",       -- or "ignore_case" or "respect_case"
+        -- the default case_mode is "smart_case"
+      }
+    },
     file_browser = {
       theme = "dropdown",
       -- disables netrw and use telescope-file-browser in its place
@@ -50,8 +65,9 @@ telescope.setup {
 }
 
 telescope.load_extension("file_browser")
+telescope.load_extension("fzf")
 
-vim.keymap.set('n', ';f',
+vim.keymap.set('n', 'ff',
   function()
     builtin.find_files({
       no_ignore = false,
@@ -73,7 +89,7 @@ end)
 vim.keymap.set('n', ';e', function()
   builtin.diagnostics()
 end)
-vim.keymap.set("n", "sf", function()
+vim.keymap.set("n", ";f", function()
   telescope.extensions.file_browser.file_browser({
     path = "%:p:h",
     cwd = telescope_buffer_dir(),
