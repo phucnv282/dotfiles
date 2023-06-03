@@ -69,4 +69,9 @@ packer.startup(function(use)
   use 'dinhhuy258/git.nvim' -- For git blame & browse
 
   use { "akinsho/toggleterm.nvim", tag = '*' }
+
+  use { 'ibhagwan/fzf-lua',
+    -- optional for icon support
+    requires = { 'nvim-tree/nvim-web-devicons' }
+  }
 end)

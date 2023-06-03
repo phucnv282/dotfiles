@@ -11,7 +11,7 @@ local fb_actions = require "telescope".extensions.file_browser.actions
 
 telescope.setup {
   defaults = {
-    preview = false,
+    preview = true,
     file_ignore_patterns = {
       "node_modules",
       ".git",
@@ -67,16 +67,16 @@ telescope.setup {
 telescope.load_extension("file_browser")
 telescope.load_extension("fzf")
 
-vim.keymap.set('n', 'ff',
-  function()
-    builtin.find_files({
-      no_ignore = false,
-      hidden = true
-    })
-  end)
-vim.keymap.set('n', ';r', function()
-  builtin.live_grep()
-end)
+-- vim.keymap.set('n', ';f',
+--   function()
+--     builtin.find_files({
+--       no_ignore = false,
+--       hidden = true
+--     })
+--   end)
+-- vim.keymap.set('n', ';r', function()
+--   builtin.live_grep()
+-- end)
 vim.keymap.set('n', '\\\\', function()
   builtin.buffers()
 end)
@@ -89,7 +89,7 @@ end)
 vim.keymap.set('n', ';e', function()
   builtin.diagnostics()
 end)
-vim.keymap.set("n", ";f", function()
+vim.keymap.set("n", "sf", function()
   telescope.extensions.file_browser.file_browser({
     path = "%:p:h",
     cwd = telescope_buffer_dir(),
