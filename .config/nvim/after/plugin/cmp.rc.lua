@@ -43,7 +43,7 @@ cmp.setup({
     }),
   }),
   sources = cmp.config.sources({
-    { name = 'nvim_lsp' },
+    { name = 'nvim_lsp', group_index = 1 },
     { name = 'buffer' },
     { name = 'codeium' },
   }),
