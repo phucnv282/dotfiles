@@ -8,7 +8,7 @@ mason.setup({
 })
 
 lspconfig.setup {
-  ensure_installed = { 'tailwindcss', 'html' },
+  ensure_installed = { 'tailwindcss' },
   automatic_installation = true
 }
 

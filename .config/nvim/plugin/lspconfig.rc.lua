@@ -84,12 +84,6 @@ nvim_lsp.cssls.setup {
   capabilities = capabilities
 }
 
-nvim_lsp.html.setup {
-  on_attach = on_attach,
-  capabilities = capabilities,
-  filetypes = { "html", "typescript", "typescriptreact", "typescript.tsx" },
-}
-
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
   vim.lsp.diagnostic.on_publish_diagnostics, {
     underline = true,
