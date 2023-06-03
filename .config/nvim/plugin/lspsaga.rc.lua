@@ -3,7 +3,7 @@ if (not status) then return end
 
 saga.setup({
   ui = {
-    winblend = 10,
+    winblend = 0,
     border = 'rounded',
     colors = {
       normal_bg = '#002b36'
@@ -14,7 +14,6 @@ saga.setup({
   }
 })
 
-local diagnostic = require("lspsaga.diagnostic")
 local opts = { noremap = true, silent = true }
 vim.keymap.set('n', '<C-j>', '<Cmd>Lspsaga diagnostic_jump_next<CR>', opts)
 vim.keymap.set('n', 'gl', '<Cmd>Lspsaga show_line_diagnostics<CR>', opts)
