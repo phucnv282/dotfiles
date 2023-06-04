@@ -1,8 +1,8 @@
 local status, be = pcall(require, "better_escape")
 if not status then
-  return
+	return
 end
 
-be.setup {
-  mapping = { "jk" }
-}
+be.setup({
+	mapping = { "jk" },
+})
