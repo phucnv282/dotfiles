@@ -88,16 +88,16 @@ return packer.startup(function(use)
 
 	use({ "akinsho/toggleterm.nvim", tag = "*" })
 
-	use({
-		"jcdickinson/codeium.nvim",
-		requires = {
-			"nvim-lua/plenary.nvim",
-			"hrsh7th/nvim-cmp",
-		},
-		config = function()
-			require("codeium").setup({})
-		end,
-	})
+	-- use({
+	-- 	"jcdickinson/codeium.nvim",
+	-- 	requires = {
+	-- 		"nvim-lua/plenary.nvim",
+	-- 		"hrsh7th/nvim-cmp",
+	-- 	},
+	-- 	config = function()
+	-- 		require("codeium").setup({})
+	-- 	end,
+	-- })
 
 	if packer_bootstrap then
 		require("packer").sync()

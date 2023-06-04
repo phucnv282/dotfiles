@@ -47,10 +47,11 @@ null_ls.setup({
 	-- end,
 })
 
-vim.keymap.set("n", "<leader>ff", function()
+vim.keymap.set("n", "<leader>df", function()
 	vim.lsp.buf.format({
 		filter = function(client)
 			return client.name == "null-ls"
 		end,
+    timeout_ms = 5000
 	})
 end)
