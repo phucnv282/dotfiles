@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# remove vim
+sudo apt remove vim
+
 # essential packages
 sudo apt install -y build-essential zsh
 
