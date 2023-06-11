@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # remove vim
-sudo apt remove vim
+sudo apt remove -y vim
 
 # essential packages
 sudo apt install -y build-essential zsh
@@ -9,7 +9,7 @@ sudo apt install -y build-essential zsh
 # neovim
 sudo add-apt-repository ppa:neovim-ppa/stable
 sudo apt-get update
-sudo apt-get install neovim
+sudo apt-get install -y neovim
 
 # nodeJS
 curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - &&\
