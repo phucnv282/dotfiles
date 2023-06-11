@@ -3,6 +3,11 @@
 # essential packages
 sudo apt install -y build-essential zsh
 
+# neovim
+sudo add-apt-repository ppa:neovim-ppa/stable
+sudo apt-get update
+sudo apt-get install neovim
+
 # nodeJS
 curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - &&\
 sudo apt-get install -y nodejs
@@ -34,3 +39,5 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$
 # symbolic link
 rm -rf ~/.zshrc
 ln -s ~/dotfiles/.zshrc ~/.zshrc
+mkdir ~/.config
+ln -s ~/dotfiles/.config/nvim ~/.config/nvim
