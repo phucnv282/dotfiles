@@ -4,7 +4,7 @@
 sudo apt remove -y vim
 
 # essential packages
-sudo apt install -y build-essential zsh unzip
+sudo apt install -y build-essential zsh unzip fzf
 
 # neovim
 sudo add-apt-repository ppa:neovim-ppa/stable
