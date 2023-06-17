@@ -4,7 +4,7 @@
 sudo apt remove -y vim
 
 # essential packages
-sudo apt install -y build-essential zsh unzip fzf ripgrep
+sudo apt install -y build-essential zsh unzip fzf ripgrep fd-find
 
 # neovim
 sudo add-apt-repository ppa:neovim-ppa/stable
@@ -44,3 +44,4 @@ rm -rf ~/.zshrc
 ln -s ~/dotfiles/.zshrc ~/.zshrc
 mkdir ~/.config
 ln -s ~/dotfiles/.config/nvim ~/.config/nvim
+sudo ln -s $(which fdfind) /usr/bin/fd
