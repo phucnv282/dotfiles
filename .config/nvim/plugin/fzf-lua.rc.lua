@@ -5,10 +5,10 @@ end
 
 fzf.setup({
 	files = {
-		fd_opts = "--color=never --type f --hidden --follow --exclude .git --exclude node_modules --exclude .next",
+		fd_opts = "--color=never --type f --hidden --follow -E .git -E node_modules -E .next -E .idea",
 	},
 	grep = {
-		rg_opts = "-g '!.git' -g '!node_modules' --column --line-number --no-heading --color=always --smart-case --max-columns=4096",
+		rg_opts = "-g '!.git' -g '!node_modules' -g '!.idea' --column --line-number --no-heading --color=always --smart-case --max-columns=4096",
 	},
 })
 
