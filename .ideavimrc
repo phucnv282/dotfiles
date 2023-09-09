@@ -1,0 +1,9 @@
+set visualbell
+set noerrorbells
+
+set ignorecase smartcase
+set hls incsearch
+
+set iskeyword+=-
+
+imap jk <Esc>
