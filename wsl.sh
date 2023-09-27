@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# remove vim
-sudo apt remove -y vim
-
 # essential packages
 sudo apt install -y build-essential zsh unzip fzf ripgrep fd-find
 
