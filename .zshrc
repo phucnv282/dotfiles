@@ -110,8 +110,48 @@ source $ZSH/oh-my-zsh.sh
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 alias k="kubectl"
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+export GOPATH=$HOME/go
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$GOPATH/bin:$PATH"
 alias kctx="kubectl ctx"
 alias kns="kubectl ns"
 export EDITOR="nvim"
 alias k9s="TERM=xterm-256color k9s"
+source <(kubectl completion zsh)
+
+autoload -U +X bashcompinit && bashcompinit
+complete -o nospace -C /opt/homebrew/bin/terraform terraform
+
+alias tf='terraform'
+alias tfa='terraform apply'
+alias tfc='terraform console'
+alias tfd='terraform destroy'
+alias tff='terraform fmt'
+alias tfg='terraform graph'
+alias tfim='terraform import'
+alias tfin='terraform init'
+alias tfo='terraform output'
+alias tfp='terraform plan'
+alias tfpr='terraform providers'
+alias tfr='terraform refresh'
+alias tfsh='terraform show'
+alias tft='terraform taint'
+alias tfut='terraform untaint'
+alias tfv='terraform validate'
+alias tfw='terraform workspace'
+alias tfs='terraform state'
+alias tffu='terraform force-unlock'
+alias tfwst='terraform workspace select'
+alias tfwsw='terraform workspace show'
+alias tfssw='terraform state show'
+alias tfwde='terraform workspace delete'
+alias tfwls='terraform workspace list'
+alias tfsls='terraform state list'
+alias tfwnw='terraform workspace new'
+alias tfsmv='terraform state mv'
+alias tfspl='terraform state pull'
+alias tfsph='terraform state push'
+alias tfsrm='terraform state rm'
+alias tfay='terraform apply -auto-approve'
+alias tfdy='terraform destroy -auto-approve'
+alias tfinu='terraform init -upgrade'
+alias tfpde='terraform plan --destroy'
