@@ -6,6 +6,8 @@ local keymap = vim.keymap -- for conciseness
 ---------------------
 -- General Keymaps
 ---------------------
+-- copy to clipboard
+keymap.set("v", "<leader>y", '"*y')
 
 -- clear search highlights
 keymap.set("n", "<leader>nh", ":nohl<CR>")
