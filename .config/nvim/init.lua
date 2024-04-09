@@ -1,3 +1,2 @@
-require("options")
-require("keymaps")
-require("plugins-setup")
+require("phucnv.core")
+require("phucnv.lazy")
