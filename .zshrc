@@ -6,7 +6,7 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:/Users/phucnguyen/tmp/terravision:/opt/homebrew/bin:/Applications/Visual Studio Code.app/Contents/Resources/app/bin:/usr/local/opt/libpq/bin:$PATH"
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -16,6 +16,8 @@ export ZSH="$HOME/.oh-my-zsh"
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 ZSH_THEME="powerlevel10k/powerlevel10k"
+
+autoload -U +X bashcompinit && bashcompinit
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -77,7 +79,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting fast-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -106,20 +108,29 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+alias act="act --container-architecture linux/amd64"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-alias k="kubectl"
-export GOPATH=$HOME/go
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$GOPATH/bin:$PATH"
-alias kctx="kubectl ctx"
-alias kns="kubectl ns"
-export EDITOR="nvim"
-alias k9s="TERM=xterm-256color k9s"
-source <(kubectl completion zsh)
 
-autoload -U +X bashcompinit && bashcompinit
-complete -o nospace -C /opt/homebrew/bin/terraform terraform
+alias kns='kubectl ns'
+alias kb='kubebuilder'
+alias kctx='kubectl ctx'
+alias kcn='kubectl config set-context --current --namespace'
+
+# Copyright 2017 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 alias tf='terraform'
 alias tfa='terraform apply'
@@ -130,7 +141,7 @@ alias tfg='terraform graph'
 alias tfim='terraform import'
 alias tfin='terraform init'
 alias tfo='terraform output'
-alias tfp='terraform plan'
+alias tfp='TF_VAR_GCP_TOKEN=$(gcloud auth print-access-token) terraform plan'
 alias tfpr='terraform providers'
 alias tfr='terraform refresh'
 alias tfsh='terraform show'
@@ -155,3 +166,667 @@ alias tfay='terraform apply -auto-approve'
 alias tfdy='terraform destroy -auto-approve'
 alias tfinu='terraform init -upgrade'
 alias tfpde='terraform plan --destroy'
+
+alias k="kubectl"
+export EDITOR="nvim"
+alias k9s="TERM=xterm-256color k9s"
+
+source <(kubectl completion zsh)
+
+#compdef ct
+compdef _ct ct
+
+# zsh completion for ct                                   -*- shell-script -*-
+
+__ct_debug()
+{
+    local file="$BASH_COMP_DEBUG_FILE"
+    if [[ -n ${file} ]]; then
+        echo "$*" >> "${file}"
+    fi
+}
+
+_ct()
+{
+    local shellCompDirectiveError=1
+    local shellCompDirectiveNoSpace=2
+    local shellCompDirectiveNoFileComp=4
+    local shellCompDirectiveFilterFileExt=8
+    local shellCompDirectiveFilterDirs=16
+    local shellCompDirectiveKeepOrder=32
+
+    local lastParam lastChar flagPrefix requestComp out directive comp lastComp noSpace keepOrder
+    local -a completions
+
+    __ct_debug "\n========= starting completion logic =========="
+    __ct_debug "CURRENT: ${CURRENT}, words[*]: ${words[*]}"
+
+    # The user could have moved the cursor backwards on the command-line.
+    # We need to trigger completion from the $CURRENT location, so we need
+    # to truncate the command-line ($words) up to the $CURRENT location.
+    # (We cannot use $CURSOR as its value does not work when a command is an alias.)
+    words=("${=words[1,CURRENT]}")
+    __ct_debug "Truncated words[*]: ${words[*]},"
+
+    lastParam=${words[-1]}
+    lastChar=${lastParam[-1]}
+    __ct_debug "lastParam: ${lastParam}, lastChar: ${lastChar}"
+
+    # For zsh, when completing a flag with an = (e.g., ct -n=<TAB>)
+    # completions must be prefixed with the flag
+    setopt local_options BASH_REMATCH
+    if [[ "${lastParam}" =~ '-.*=' ]]; then
+        # We are dealing with a flag with an =
+        flagPrefix="-P ${BASH_REMATCH}"
+    fi
+
+    # Prepare the command to obtain completions
+    requestComp="${words[1]} __complete ${words[2,-1]}"
+    if [ "${lastChar}" = "" ]; then
+        # If the last parameter is complete (there is a space following it)
+        # We add an extra empty parameter so we can indicate this to the go completion code.
+        __ct_debug "Adding extra empty parameter"
+        requestComp="${requestComp} \"\""
+    fi
+
+    __ct_debug "About to call: eval ${requestComp}"
+
+    # Use eval to handle any environment variables and such
+    out=$(eval ${requestComp} 2>/dev/null)
+    __ct_debug "completion output: ${out}"
+
+    # Extract the directive integer following a : from the last line
+    local lastLine
+    while IFS='\n' read -r line; do
+        lastLine=${line}
+    done < <(printf "%s\n" "${out[@]}")
+    __ct_debug "last line: ${lastLine}"
+
+    if [ "${lastLine[1]}" = : ]; then
+        directive=${lastLine[2,-1]}
+        # Remove the directive including the : and the newline
+        local suffix
+        (( suffix=${#lastLine}+2))
+        out=${out[1,-$suffix]}
+    else
+        # There is no directive specified.  Leave $out as is.
+        __ct_debug "No directive found.  Setting do default"
+        directive=0
+    fi
+
+    __ct_debug "directive: ${directive}"
+    __ct_debug "completions: ${out}"
+    __ct_debug "flagPrefix: ${flagPrefix}"
+
+    if [ $((directive & shellCompDirectiveError)) -ne 0 ]; then
+        __ct_debug "Completion received error. Ignoring completions."
+        return
+    fi
+
+    local activeHelpMarker="_activeHelp_ "
+    local endIndex=${#activeHelpMarker}
+    local startIndex=$((${#activeHelpMarker}+1))
+    local hasActiveHelp=0
+    while IFS='\n' read -r comp; do
+        # Check if this is an activeHelp statement (i.e., prefixed with $activeHelpMarker)
+        if [ "${comp[1,$endIndex]}" = "$activeHelpMarker" ];then
+            __ct_debug "ActiveHelp found: $comp"
+            comp="${comp[$startIndex,-1]}"
+            if [ -n "$comp" ]; then
+                compadd -x "${comp}"
+                __ct_debug "ActiveHelp will need delimiter"
+                hasActiveHelp=1
+            fi
+
+            continue
+        fi
+
+        if [ -n "$comp" ]; then
+            # If requested, completions are returned with a description.
+            # The description is preceded by a TAB character.
+            # For zsh's _describe, we need to use a : instead of a TAB.
+            # We first need to escape any : as part of the completion itself.
+            comp=${comp//:/\\:}
+
+            local tab="$(printf '\t')"
+            comp=${comp//$tab/:}
+
+            __ct_debug "Adding completion: ${comp}"
+            completions+=${comp}
+            lastComp=$comp
+        fi
+    done < <(printf "%s\n" "${out[@]}")
+
+    # Add a delimiter after the activeHelp statements, but only if:
+    # - there are completions following the activeHelp statements, or
+    # - file completion will be performed (so there will be choices after the activeHelp)
+    if [ $hasActiveHelp -eq 1 ]; then
+        if [ ${#completions} -ne 0 ] || [ $((directive & shellCompDirectiveNoFileComp)) -eq 0 ]; then
+            __ct_debug "Adding activeHelp delimiter"
+            compadd -x "--"
+            hasActiveHelp=0
+        fi
+    fi
+
+    if [ $((directive & shellCompDirectiveNoSpace)) -ne 0 ]; then
+        __ct_debug "Activating nospace."
+        noSpace="-S ''"
+    fi
+
+    if [ $((directive & shellCompDirectiveKeepOrder)) -ne 0 ]; then
+        __ct_debug "Activating keep order."
+        keepOrder="-V"
+    fi
+
+    if [ $((directive & shellCompDirectiveFilterFileExt)) -ne 0 ]; then
+        # File extension filtering
+        local filteringCmd
+        filteringCmd='_files'
+        for filter in ${completions[@]}; do
+            if [ ${filter[1]} != '*' ]; then
+                # zsh requires a glob pattern to do file filtering
+                filter="\*.$filter"
+            fi
+            filteringCmd+=" -g $filter"
+        done
+        filteringCmd+=" ${flagPrefix}"
+
+        __ct_debug "File filtering command: $filteringCmd"
+        _arguments '*:filename:'"$filteringCmd"
+    elif [ $((directive & shellCompDirectiveFilterDirs)) -ne 0 ]; then
+        # File completion for directories only
+        local subdir
+        subdir="${completions[1]}"
+        if [ -n "$subdir" ]; then
+            __ct_debug "Listing directories in $subdir"
+            pushd "${subdir}" >/dev/null 2>&1
+        else
+            __ct_debug "Listing directories in ."
+        fi
+
+        local result
+        _arguments '*:dirname:_files -/'" ${flagPrefix}"
+        result=$?
+        if [ -n "$subdir" ]; then
+            popd >/dev/null 2>&1
+        fi
+        return $result
+    else
+        __ct_debug "Calling _describe"
+        if eval _describe $keepOrder "completions" completions $flagPrefix $noSpace; then
+            __ct_debug "_describe found some completions"
+
+            # Return the success of having called _describe
+            return 0
+        else
+            __ct_debug "_describe did not find completions."
+            __ct_debug "Checking if we should do file completion."
+            if [ $((directive & shellCompDirectiveNoFileComp)) -ne 0 ]; then
+                __ct_debug "deactivating file completion"
+
+                # We must return an error code here to let zsh know that there were no
+                # completions found by _describe; this is what will trigger other
+                # matching algorithms to attempt to find completions.
+                # For example zsh can match letters in the middle of words.
+                return 1
+            else
+                # Perform file completion
+                __ct_debug "Activating file completion"
+
+                # We must return the result of this command, so it must be the
+                # last command, or else we must store its result to return it.
+                _arguments '*:filename:_files'" ${flagPrefix}"
+            fi
+        fi
+    fi
+}
+
+# don't run the completion function when being source-ed or eval-ed
+if [ "$funcstack[1]" = "_ct" ]; then
+    _ct
+fi
+#compdef kubebuilder
+compdef _kubebuilder kubebuilder
+
+# zsh completion for kubebuilder                          -*- shell-script -*-
+
+__kubebuilder_debug()
+{
+    local file="$BASH_COMP_DEBUG_FILE"
+    if [[ -n ${file} ]]; then
+        echo "$*" >> "${file}"
+    fi
+}
+
+_kubebuilder()
+{
+    local shellCompDirectiveError=1
+    local shellCompDirectiveNoSpace=2
+    local shellCompDirectiveNoFileComp=4
+    local shellCompDirectiveFilterFileExt=8
+    local shellCompDirectiveFilterDirs=16
+    local shellCompDirectiveKeepOrder=32
+
+    local lastParam lastChar flagPrefix requestComp out directive comp lastComp noSpace keepOrder
+    local -a completions
+
+    __kubebuilder_debug "\n========= starting completion logic =========="
+    __kubebuilder_debug "CURRENT: ${CURRENT}, words[*]: ${words[*]}"
+
+    # The user could have moved the cursor backwards on the command-line.
+    # We need to trigger completion from the $CURRENT location, so we need
+    # to truncate the command-line ($words) up to the $CURRENT location.
+    # (We cannot use $CURSOR as its value does not work when a command is an alias.)
+    words=("${=words[1,CURRENT]}")
+    __kubebuilder_debug "Truncated words[*]: ${words[*]},"
+
+    lastParam=${words[-1]}
+    lastChar=${lastParam[-1]}
+    __kubebuilder_debug "lastParam: ${lastParam}, lastChar: ${lastChar}"
+
+    # For zsh, when completing a flag with an = (e.g., kubebuilder -n=<TAB>)
+    # completions must be prefixed with the flag
+    setopt local_options BASH_REMATCH
+    if [[ "${lastParam}" =~ '-.*=' ]]; then
+        # We are dealing with a flag with an =
+        flagPrefix="-P ${BASH_REMATCH}"
+    fi
+
+    # Prepare the command to obtain completions
+    requestComp="${words[1]} __complete ${words[2,-1]}"
+    if [ "${lastChar}" = "" ]; then
+        # If the last parameter is complete (there is a space following it)
+        # We add an extra empty parameter so we can indicate this to the go completion code.
+        __kubebuilder_debug "Adding extra empty parameter"
+        requestComp="${requestComp} \"\""
+    fi
+
+    __kubebuilder_debug "About to call: eval ${requestComp}"
+
+    # Use eval to handle any environment variables and such
+    out=$(eval ${requestComp} 2>/dev/null)
+    __kubebuilder_debug "completion output: ${out}"
+
+    # Extract the directive integer following a : from the last line
+    local lastLine
+    while IFS='\n' read -r line; do
+        lastLine=${line}
+    done < <(printf "%s\n" "${out[@]}")
+    __kubebuilder_debug "last line: ${lastLine}"
+
+    if [ "${lastLine[1]}" = : ]; then
+        directive=${lastLine[2,-1]}
+        # Remove the directive including the : and the newline
+        local suffix
+        (( suffix=${#lastLine}+2))
+        out=${out[1,-$suffix]}
+    else
+        # There is no directive specified.  Leave $out as is.
+        __kubebuilder_debug "No directive found.  Setting do default"
+        directive=0
+    fi
+
+    __kubebuilder_debug "directive: ${directive}"
+    __kubebuilder_debug "completions: ${out}"
+    __kubebuilder_debug "flagPrefix: ${flagPrefix}"
+
+    if [ $((directive & shellCompDirectiveError)) -ne 0 ]; then
+        __kubebuilder_debug "Completion received error. Ignoring completions."
+        return
+    fi
+
+    local activeHelpMarker="_activeHelp_ "
+    local endIndex=${#activeHelpMarker}
+    local startIndex=$((${#activeHelpMarker}+1))
+    local hasActiveHelp=0
+    while IFS='\n' read -r comp; do
+        # Check if this is an activeHelp statement (i.e., prefixed with $activeHelpMarker)
+        if [ "${comp[1,$endIndex]}" = "$activeHelpMarker" ];then
+            __kubebuilder_debug "ActiveHelp found: $comp"
+            comp="${comp[$startIndex,-1]}"
+            if [ -n "$comp" ]; then
+                compadd -x "${comp}"
+                __kubebuilder_debug "ActiveHelp will need delimiter"
+                hasActiveHelp=1
+            fi
+
+            continue
+        fi
+
+        if [ -n "$comp" ]; then
+            # If requested, completions are returned with a description.
+            # The description is preceded by a TAB character.
+            # For zsh's _describe, we need to use a : instead of a TAB.
+            # We first need to escape any : as part of the completion itself.
+            comp=${comp//:/\\:}
+
+            local tab="$(printf '\t')"
+            comp=${comp//$tab/:}
+
+            __kubebuilder_debug "Adding completion: ${comp}"
+            completions+=${comp}
+            lastComp=$comp
+        fi
+    done < <(printf "%s\n" "${out[@]}")
+
+    # Add a delimiter after the activeHelp statements, but only if:
+    # - there are completions following the activeHelp statements, or
+    # - file completion will be performed (so there will be choices after the activeHelp)
+    if [ $hasActiveHelp -eq 1 ]; then
+        if [ ${#completions} -ne 0 ] || [ $((directive & shellCompDirectiveNoFileComp)) -eq 0 ]; then
+            __kubebuilder_debug "Adding activeHelp delimiter"
+            compadd -x "--"
+            hasActiveHelp=0
+        fi
+    fi
+
+    if [ $((directive & shellCompDirectiveNoSpace)) -ne 0 ]; then
+        __kubebuilder_debug "Activating nospace."
+        noSpace="-S ''"
+    fi
+
+    if [ $((directive & shellCompDirectiveKeepOrder)) -ne 0 ]; then
+        __kubebuilder_debug "Activating keep order."
+        keepOrder="-V"
+    fi
+
+    if [ $((directive & shellCompDirectiveFilterFileExt)) -ne 0 ]; then
+        # File extension filtering
+        local filteringCmd
+        filteringCmd='_files'
+        for filter in ${completions[@]}; do
+            if [ ${filter[1]} != '*' ]; then
+                # zsh requires a glob pattern to do file filtering
+                filter="\*.$filter"
+            fi
+            filteringCmd+=" -g $filter"
+        done
+        filteringCmd+=" ${flagPrefix}"
+
+        __kubebuilder_debug "File filtering command: $filteringCmd"
+        _arguments '*:filename:'"$filteringCmd"
+    elif [ $((directive & shellCompDirectiveFilterDirs)) -ne 0 ]; then
+        # File completion for directories only
+        local subdir
+        subdir="${completions[1]}"
+        if [ -n "$subdir" ]; then
+            __kubebuilder_debug "Listing directories in $subdir"
+            pushd "${subdir}" >/dev/null 2>&1
+        else
+            __kubebuilder_debug "Listing directories in ."
+        fi
+
+        local result
+        _arguments '*:dirname:_files -/'" ${flagPrefix}"
+        result=$?
+        if [ -n "$subdir" ]; then
+            popd >/dev/null 2>&1
+        fi
+        return $result
+    else
+        __kubebuilder_debug "Calling _describe"
+        if eval _describe $keepOrder "completions" completions $flagPrefix $noSpace; then
+            __kubebuilder_debug "_describe found some completions"
+
+            # Return the success of having called _describe
+            return 0
+        else
+            __kubebuilder_debug "_describe did not find completions."
+            __kubebuilder_debug "Checking if we should do file completion."
+            if [ $((directive & shellCompDirectiveNoFileComp)) -ne 0 ]; then
+                __kubebuilder_debug "deactivating file completion"
+
+                # We must return an error code here to let zsh know that there were no
+                # completions found by _describe; this is what will trigger other
+                # matching algorithms to attempt to find completions.
+                # For example zsh can match letters in the middle of words.
+                return 1
+            else
+                # Perform file completion
+                __kubebuilder_debug "Activating file completion"
+
+                # We must return the result of this command, so it must be the
+                # last command, or else we must store its result to return it.
+                _arguments '*:filename:_files'" ${flagPrefix}"
+            fi
+        fi
+    fi
+}
+
+# don't run the completion function when being source-ed or eval-ed
+if [ "$funcstack[1]" = "_kubebuilder" ]; then
+    _kubebuilder
+fi
+
+# Set up fzf key bindings and fuzzy completion
+eval "$(fzf --zsh)"
+
+export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
+export PATH="/Users/phucnguyen/Library/Python/3.12/bin:$PATH"
+#compdef kubeshark
+compdef _kubeshark kubeshark
+
+# zsh completion for kubeshark                            -*- shell-script -*-
+
+__kubeshark_debug()
+{
+    local file="$BASH_COMP_DEBUG_FILE"
+    if [[ -n ${file} ]]; then
+        echo "$*" >> "${file}"
+    fi
+}
+
+_kubeshark()
+{
+    local shellCompDirectiveError=1
+    local shellCompDirectiveNoSpace=2
+    local shellCompDirectiveNoFileComp=4
+    local shellCompDirectiveFilterFileExt=8
+    local shellCompDirectiveFilterDirs=16
+    local shellCompDirectiveKeepOrder=32
+
+    local lastParam lastChar flagPrefix requestComp out directive comp lastComp noSpace keepOrder
+    local -a completions
+
+    __kubeshark_debug "\n========= starting completion logic =========="
+    __kubeshark_debug "CURRENT: ${CURRENT}, words[*]: ${words[*]}"
+
+    # The user could have moved the cursor backwards on the command-line.
+    # We need to trigger completion from the $CURRENT location, so we need
+    # to truncate the command-line ($words) up to the $CURRENT location.
+    # (We cannot use $CURSOR as its value does not work when a command is an alias.)
+    words=("${=words[1,CURRENT]}")
+    __kubeshark_debug "Truncated words[*]: ${words[*]},"
+
+    lastParam=${words[-1]}
+    lastChar=${lastParam[-1]}
+    __kubeshark_debug "lastParam: ${lastParam}, lastChar: ${lastChar}"
+
+    # For zsh, when completing a flag with an = (e.g., kubeshark -n=<TAB>)
+    # completions must be prefixed with the flag
+    setopt local_options BASH_REMATCH
+    if [[ "${lastParam}" =~ '-.*=' ]]; then
+        # We are dealing with a flag with an =
+        flagPrefix="-P ${BASH_REMATCH}"
+    fi
+
+    # Prepare the command to obtain completions
+    requestComp="${words[1]} __complete ${words[2,-1]}"
+    if [ "${lastChar}" = "" ]; then
+        # If the last parameter is complete (there is a space following it)
+        # We add an extra empty parameter so we can indicate this to the go completion code.
+        __kubeshark_debug "Adding extra empty parameter"
+        requestComp="${requestComp} \"\""
+    fi
+
+    __kubeshark_debug "About to call: eval ${requestComp}"
+
+    # Use eval to handle any environment variables and such
+    out=$(eval ${requestComp} 2>/dev/null)
+    __kubeshark_debug "completion output: ${out}"
+
+    # Extract the directive integer following a : from the last line
+    local lastLine
+    while IFS='\n' read -r line; do
+        lastLine=${line}
+    done < <(printf "%s\n" "${out[@]}")
+    __kubeshark_debug "last line: ${lastLine}"
+
+    if [ "${lastLine[1]}" = : ]; then
+        directive=${lastLine[2,-1]}
+        # Remove the directive including the : and the newline
+        local suffix
+        (( suffix=${#lastLine}+2))
+        out=${out[1,-$suffix]}
+    else
+        # There is no directive specified.  Leave $out as is.
+        __kubeshark_debug "No directive found.  Setting do default"
+        directive=0
+    fi
+
+    __kubeshark_debug "directive: ${directive}"
+    __kubeshark_debug "completions: ${out}"
+    __kubeshark_debug "flagPrefix: ${flagPrefix}"
+
+    if [ $((directive & shellCompDirectiveError)) -ne 0 ]; then
+        __kubeshark_debug "Completion received error. Ignoring completions."
+        return
+    fi
+
+    local activeHelpMarker="_activeHelp_ "
+    local endIndex=${#activeHelpMarker}
+    local startIndex=$((${#activeHelpMarker}+1))
+    local hasActiveHelp=0
+    while IFS='\n' read -r comp; do
+        # Check if this is an activeHelp statement (i.e., prefixed with $activeHelpMarker)
+        if [ "${comp[1,$endIndex]}" = "$activeHelpMarker" ];then
+            __kubeshark_debug "ActiveHelp found: $comp"
+            comp="${comp[$startIndex,-1]}"
+            if [ -n "$comp" ]; then
+                compadd -x "${comp}"
+                __kubeshark_debug "ActiveHelp will need delimiter"
+                hasActiveHelp=1
+            fi
+
+            continue
+        fi
+
+        if [ -n "$comp" ]; then
+            # If requested, completions are returned with a description.
+            # The description is preceded by a TAB character.
+            # For zsh's _describe, we need to use a : instead of a TAB.
+            # We first need to escape any : as part of the completion itself.
+            comp=${comp//:/\\:}
+
+            local tab="$(printf '\t')"
+            comp=${comp//$tab/:}
+
+            __kubeshark_debug "Adding completion: ${comp}"
+            completions+=${comp}
+            lastComp=$comp
+        fi
+    done < <(printf "%s\n" "${out[@]}")
+
+    # Add a delimiter after the activeHelp statements, but only if:
+    # - there are completions following the activeHelp statements, or
+    # - file completion will be performed (so there will be choices after the activeHelp)
+    if [ $hasActiveHelp -eq 1 ]; then
+        if [ ${#completions} -ne 0 ] || [ $((directive & shellCompDirectiveNoFileComp)) -eq 0 ]; then
+            __kubeshark_debug "Adding activeHelp delimiter"
+            compadd -x "--"
+            hasActiveHelp=0
+        fi
+    fi
+
+    if [ $((directive & shellCompDirectiveNoSpace)) -ne 0 ]; then
+        __kubeshark_debug "Activating nospace."
+        noSpace="-S ''"
+    fi
+
+    if [ $((directive & shellCompDirectiveKeepOrder)) -ne 0 ]; then
+        __kubeshark_debug "Activating keep order."
+        keepOrder="-V"
+    fi
+
+    if [ $((directive & shellCompDirectiveFilterFileExt)) -ne 0 ]; then
+        # File extension filtering
+        local filteringCmd
+        filteringCmd='_files'
+        for filter in ${completions[@]}; do
+            if [ ${filter[1]} != '*' ]; then
+                # zsh requires a glob pattern to do file filtering
+                filter="\*.$filter"
+            fi
+            filteringCmd+=" -g $filter"
+        done
+        filteringCmd+=" ${flagPrefix}"
+
+        __kubeshark_debug "File filtering command: $filteringCmd"
+        _arguments '*:filename:'"$filteringCmd"
+    elif [ $((directive & shellCompDirectiveFilterDirs)) -ne 0 ]; then
+        # File completion for directories only
+        local subdir
+        subdir="${completions[1]}"
+        if [ -n "$subdir" ]; then
+            __kubeshark_debug "Listing directories in $subdir"
+            pushd "${subdir}" >/dev/null 2>&1
+        else
+            __kubeshark_debug "Listing directories in ."
+        fi
+
+        local result
+        _arguments '*:dirname:_files -/'" ${flagPrefix}"
+        result=$?
+        if [ -n "$subdir" ]; then
+            popd >/dev/null 2>&1
+        fi
+        return $result
+    else
+        __kubeshark_debug "Calling _describe"
+        if eval _describe $keepOrder "completions" completions $flagPrefix $noSpace; then
+            __kubeshark_debug "_describe found some completions"
+
+            # Return the success of having called _describe
+            return 0
+        else
+            __kubeshark_debug "_describe did not find completions."
+            __kubeshark_debug "Checking if we should do file completion."
+            if [ $((directive & shellCompDirectiveNoFileComp)) -ne 0 ]; then
+                __kubeshark_debug "deactivating file completion"
+
+                # We must return an error code here to let zsh know that there were no
+                # completions found by _describe; this is what will trigger other
+                # matching algorithms to attempt to find completions.
+                # For example zsh can match letters in the middle of words.
+                return 1
+            else
+                # Perform file completion
+                __kubeshark_debug "Activating file completion"
+
+                # We must return the result of this command, so it must be the
+                # last command, or else we must store its result to return it.
+                _arguments '*:filename:_files'" ${flagPrefix}"
+            fi
+        fi
+    fi
+}
+
+# don't run the completion function when being source-ed or eval-ed
+if [ "$funcstack[1]" = "_kubeshark" ]; then
+    _kubeshark
+fi
+# The following lines have been added by Docker Desktop to enable Docker CLI completions.
+fpath=(/Users/phucnguyen/.docker/completions $fpath)
+autoload -Uz compinit
+compinit
+# End of Docker CLI completions
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/phucnguyen/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/phucnguyen/Downloads/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/phucnguyen/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/phucnguyen/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
